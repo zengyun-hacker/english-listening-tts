@@ -502,7 +502,7 @@ with tab2:
         st.markdown("---")
         st.markdown('<div class="sec-header">🎵 生成音频 & 下载试卷</div>', unsafe_allow_html=True)
 
-        action_col1, action_col2, action_col3 = st.columns([2, 1, 1], gap="medium")
+        action_col1, action_col2, action_col3, action_col4 = st.columns([2, 1, 1, 1], gap="medium")
 
         with action_col1:
             if provider == "openai" and not openai_key:
@@ -522,18 +522,21 @@ with tab2:
                         q_pause=q_pause,
                     )
 
+        safe_title = ai_test.title.replace(" ", "_").replace("/", "-")[:40]
+        _mime = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
         with action_col2:
-            # Word download
+            # Word — questions + answers only (student exam sheet)
             try:
                 from export.docx_export import export_to_docx
                 docx_bytes = export_to_docx(ai_test)
-                safe_title = ai_test.title.replace(" ", "_").replace("/", "-")[:40]
                 st.download_button(
-                    label="📄 下载 Word 试卷",
+                    label="📄 试卷（无原文）",
                     data=docx_bytes,
-                    file_name=f"{safe_title}.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    file_name=f"{safe_title}_试卷.docx",
+                    mime=_mime,
                     use_container_width=True,
+                    help="包含题目和答案页，适合学生答题使用",
                 )
             except ImportError:
                 st.warning("请安装 python-docx：`pip install python-docx`")
@@ -541,7 +544,25 @@ with tab2:
                 st.error(f"Word 导出失败：{e}")
 
         with action_col3:
-            # Show answer key
+            # Word — script + questions + answers (teacher reference)
+            try:
+                from export.docx_export import export_to_docx_full
+                docx_full_bytes = export_to_docx_full(ai_test)
+                st.download_button(
+                    label="📖 原文+试题+答案",
+                    data=docx_full_bytes,
+                    file_name=f"{safe_title}_含原文.docx",
+                    mime=_mime,
+                    use_container_width=True,
+                    help="每道题附有听力原文和答案解析，适合教师备课或课后复习",
+                )
+            except ImportError:
+                st.warning("请安装 python-docx：`pip install python-docx`")
+            except Exception as e:
+                st.error(f"Word 导出失败：{e}")
+
+        with action_col4:
+            # Show answer key inline
             with st.expander("📋 查看答案表"):
                 st.markdown(
                     f'<div class="ans-box">{ai_test.to_answer_key()}</div>',
@@ -550,7 +571,8 @@ with tab2:
 
         st.markdown("---")
         st.markdown(
-            '<div class="tip-box">💡 <b>提示</b>：点击「生成音频」后，音频播放器和 MP3 下载按钮将出现在上方。'
-            '「下载 Word 试卷」包含完整题目和答案页，可直接打印。</div>',
+            '<div class="tip-box">💡 <b>下载说明</b>：'
+            '「试卷（无原文）」适合打印给学生作答；'
+            '「原文+试题+答案」每题附听力原文和解析，适合老师备课或课后对答案。</div>',
             unsafe_allow_html=True,
         )
