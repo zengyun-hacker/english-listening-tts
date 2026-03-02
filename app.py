@@ -43,6 +43,48 @@ st.set_page_config(
 )
 
 # ─────────────────────────────────────────────
+# Password gate
+# ─────────────────────────────────────────────
+def _check_auth():
+    """Block access unless the visitor knows APP_PASSWORD.
+
+    - If APP_PASSWORD is not set in secrets / env, the gate is disabled
+      (safe for local development).
+    - Authentication is persisted in st.session_state for the browser session.
+    """
+    try:
+        required = st.secrets.get("APP_PASSWORD", "")
+    except Exception:
+        required = os.getenv("APP_PASSWORD", "")
+
+    if not required:
+        return  # No password configured → open access
+
+    if st.session_state.get("_authed"):
+        return  # Already authenticated this session
+
+    # ── Login screen ──────────────────────────
+    st.markdown(
+        "<h2 style='text-align:center;margin-top:3rem;'>🔐 请输入访问密码</h2>",
+        unsafe_allow_html=True,
+    )
+    _, col, _ = st.columns([1, 1.2, 1])
+    with col:
+        entered = st.text_input("密码", type="password", label_visibility="collapsed",
+                                placeholder="请输入密码…")
+        if st.button("进入", use_container_width=True, type="primary"):
+            if entered == required:
+                st.session_state["_authed"] = True
+                st.rerun()
+            else:
+                st.error("密码错误，请重试。")
+    st.stop()
+
+
+_check_auth()
+
+
+# ─────────────────────────────────────────────
 # Custom CSS
 # ─────────────────────────────────────────────
 st.markdown("""
