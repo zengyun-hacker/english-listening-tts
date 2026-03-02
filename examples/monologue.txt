@@ -1,0 +1,16 @@
+# 示例二：独白/讲座（Monologue / Lecture）
+# 适用于：四六级 Part 3、雅思 Section 4
+@title: Climate and the Ocean
+@type: monologue
+
+Good morning, everyone. Today I'd like to talk about the relationship between climate change and our oceans.
+
+The ocean covers about seventy percent of the Earth's surface and plays a crucial role in regulating the global climate. It absorbs around thirty percent of the carbon dioxide that humans produce.
+
+However, as CO₂ levels rise, the ocean becomes more acidic. This process, known as ocean acidification, threatens marine life — particularly shellfish and coral reefs.
+
+Number 3. Scientists have recorded a thirty percent increase in ocean acidity since the Industrial Revolution.
+
+Over the next fifty years, if current trends continue, we may see dramatic losses in marine biodiversity. Therefore, reducing carbon emissions is not only about protecting the atmosphere — it is about protecting our oceans as well.
+
+Thank you for listening.

@@ -1,0 +1,12 @@
+# 示例三：广播通知（Broadcast / Announcement）
+# 适用于：机场、学校、火车站场景
+@title: Airport Announcement
+@type: broadcast
+
+[Announcer]: Good afternoon, ladies and gentlemen. This is a passenger announcement for Flight BA two-seven-five to London Heathrow.
+
+[Announcer]: We regret to inform you that this flight has been delayed by approximately forty-five minutes due to late arrival of the incoming aircraft.
+
+[Announcer]: The new departure time is seventeen thirty. We apologize for any inconvenience caused.
+
+[Announcer]: Passengers are reminded to keep their boarding passes and passports ready. Please proceed to Gate Twelve when boarding begins. Thank you for your patience.

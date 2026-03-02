@@ -1,0 +1,16 @@
+# 示例一：情景对话（Dialogue）
+# 适用于：高中/四六级 Part 1 短对话
+@title: Unit 5 - At the Restaurant
+@type: dialogue
+
+Number 1.
+[Man]: Good evening. Do you have a reservation?
+[Woman]: Yes, I booked a table for two under the name Johnson.
+[Man]: Ah, yes, right this way. Would you prefer a window seat?
+[Woman]: That would be lovely, thank you.
+
+Number 2.
+[Man]: Are you ready to order, or do you need a few more minutes?
+[Woman]: I think I'll have the grilled salmon, please.
+[Man]: Excellent choice. And would you like anything to drink?
+[Woman]: Just sparkling water, please.

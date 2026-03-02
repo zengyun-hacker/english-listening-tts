@@ -1,0 +1,17 @@
+# 示例四：采访/访谈（Interview）
+# 适用于：雅思/托福 Section 3、听力长对话
+@title: Job Interview Practice
+@type: dialogue
+
+# 可以给角色起名字，系统会自动按顺序分配男女声
+Interviewer: Good morning. Please take a seat.
+Candidate: Thank you. Good morning.
+
+Interviewer: So, tell me a little about yourself and why you're interested in this position.
+Candidate: Certainly. I graduated from the University of Manchester with a degree in Business Administration. I'm particularly interested in this role because it combines my passion for data analysis with client-facing work.
+
+Interviewer: That's great. Can you describe a situation where you had to work under pressure?
+Candidate: Of course. Last year, I was part of a team that had to deliver a major report within three days. I organized the workload among team members and stayed focused on the key findings. We submitted on time and the client was very pleased.
+
+Interviewer: Excellent. Do you have any questions for us?
+Candidate: Yes, I'd like to know more about the team structure and opportunities for professional development.
