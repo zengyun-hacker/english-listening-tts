@@ -1,6 +1,7 @@
 edge-tts>=6.1.9
 openai>=1.0.0
 pydub>=0.25.1
+pyaudioop>=0.2.0
 streamlit>=1.32.0
 python-dotenv>=1.0.0
 click>=8.1.0
