@@ -16,12 +16,21 @@ load_dotenv()
 
 def _get_openai_key_from_env() -> str:
     """Read OpenAI key from local .env or Streamlit Cloud Secrets."""
-    # Streamlit Cloud: secrets are in st.secrets
     try:
         return st.secrets.get("OPENAI_API_KEY", "")
     except Exception:
         pass
     return os.getenv("OPENAI_API_KEY", "")
+
+
+def _get_deepseek_key_from_env() -> str:
+    """Read DeepSeek key from local .env or Streamlit Cloud Secrets."""
+    try:
+        return st.secrets.get("DEEPSEEK_API_KEY", "")
+    except Exception:
+        pass
+    return os.getenv("DEEPSEEK_API_KEY", "")
+
 
 # ─────────────────────────────────────────────
 # Page config (must be first Streamlit call)
@@ -51,6 +60,9 @@ st.markdown("""
                    font-weight:600; }
     .tip-box     { background:#e3f2fd; border:1px solid #90caf9; border-radius:8px;
                    padding:10px 14px; font-size:.9rem; color:#1565c0; }
+    .ans-box     { background:#f1f8e9; border:1px solid #aed581; border-radius:8px;
+                   padding:10px 14px; font-size:.88rem; color:#33691e;
+                   font-family:monospace; white-space:pre-wrap; }
     footer { visibility:hidden; }
     #MainMenu { visibility:hidden; }
 </style>
@@ -58,7 +70,7 @@ st.markdown("""
 
 
 # ─────────────────────────────────────────────
-# Core generation function (defined first)
+# Core generation function (shared by both tabs)
 # ─────────────────────────────────────────────
 def run_generate(script_text, provider, voice_a, voice_b,
                  openai_key, openai_model, openai_speed,
@@ -94,7 +106,6 @@ def run_generate(script_text, provider, voice_a, voice_b,
     if len(speakers) > 1:
         voice_overrides[speakers[1].lower()] = voice_b
 
-    total = len(script.segments)
     progress_bar = st.progress(0, text="正在准备合成…")
     status_ph = st.empty()
 
@@ -130,7 +141,7 @@ def run_generate(script_text, provider, voice_a, voice_b,
 
 
 # ─────────────────────────────────────────────
-# Example scripts
+# Example scripts (Tab 1)
 # ─────────────────────────────────────────────
 EXAMPLES = {
     "（选择示例快速体验）": "",
@@ -176,6 +187,39 @@ Candidate: Last year my team had to deliver a major report in three days. I divi
 Interviewer: Do you have any questions for us?
 Candidate: Yes — could you tell me more about opportunities for professional development?""",
 }
+
+# ─────────────────────────────────────────────
+# AI generation example prompts (Tab 2)
+# ─────────────────────────────────────────────
+AI_EXAMPLE_PROMPTS = {
+    "（选择示例提示词）": "",
+    "🎓 大学英语四级·15题": (
+        "请生成一套完整的大学英语四级听力试题，包含：\n"
+        "- Part I 短对话 8题（每题一段简短对话）\n"
+        "- Part II 长对话 2段，共4题\n"
+        "- Part III 短文听力 1篇，共3题\n"
+        "话题涵盖校园生活、职场、日常交流。难度适合大学生。"
+    ),
+    "🏫 高中英语听力·10题": (
+        "请生成一套高中英语听力模拟题，共10题：\n"
+        "- 第一节 短对话 5题\n"
+        "- 第二节 长对话 1段3题 + 独白1段2题\n"
+        "语言难度适合高中生，话题贴近日常生活和学校场景。"
+    ),
+    "💼 职场英语听力·8题": (
+        "请生成一套商务职场英语听力题，共8题：\n"
+        "- 3段职场对话（会议、邮件、电话）各2题\n"
+        "- 1段商务简报独白 2题\n"
+        "使用正式职场英语，话题包括项目汇报、客户沟通、会议安排。"
+    ),
+    "🌏 新闻广播听力·6题": (
+        "请生成一套英语新闻广播听力题，共6题：\n"
+        "- 2篇新闻报道，每篇3题\n"
+        "- 类型：独白（播音员口吻）\n"
+        "话题：科技新闻和环境新闻。语速适中，适合大学英语水平。"
+    ),
+}
+
 
 # ─────────────────────────────────────────────
 # Header
@@ -235,18 +279,49 @@ with st.sidebar:
                          help="播报 'Number 1' 后的停顿时间")
 
     st.markdown("---")
-    st.caption("仅供教学用途 · 基于 Microsoft edge-tts / OpenAI TTS")
+
+    # DeepSeek API Key (shown when env var not set)
+    _ds_key_from_env = _get_deepseek_key_from_env()
+    if _ds_key_from_env:
+        deepseek_key = _ds_key_from_env
+        st.markdown("### 🤖 AI 生成")
+        st.success("✅ DeepSeek API Key 已从环境变量加载")
+    else:
+        st.markdown("### 🤖 AI 生成（可选）")
+        deepseek_key = st.text_input(
+            "DeepSeek API Key",
+            type="password",
+            placeholder="sk-...",
+            help="在 platform.deepseek.com 获取 API Key，用于 AI 自动出题功能。",
+        )
+
+    deepseek_model = st.selectbox(
+        "DeepSeek 模型",
+        ["deepseek-chat", "deepseek-reasoner"],
+        help="deepseek-chat 速度快，deepseek-reasoner 推理更强。",
+    )
+
+    st.markdown("---")
+    st.caption("仅供教学用途 · 基于 Microsoft edge-tts / OpenAI TTS / DeepSeek")
+
 
 # ─────────────────────────────────────────────
-# Main layout: left = input, right = preview + generate
+# Tabs
 # ─────────────────────────────────────────────
-col_left, col_right = st.columns([3, 2], gap="large")
+tab1, tab2 = st.tabs(["✍️ 手动输入", "🤖 AI 生成"])
 
-with col_left:
-    st.markdown('<div class="sec-header">📝 粘贴听力脚本</div>', unsafe_allow_html=True)
 
-    with st.expander("📖 脚本格式说明（点击展开）", expanded=False):
-        st.markdown("""
+# ═════════════════════════════════════════════
+# Tab 1 — Manual input (existing functionality)
+# ═════════════════════════════════════════════
+with tab1:
+    col_left, col_right = st.columns([3, 2], gap="large")
+
+    with col_left:
+        st.markdown('<div class="sec-header">📝 粘贴听力脚本</div>', unsafe_allow_html=True)
+
+        with st.expander("📖 脚本格式说明（点击展开）", expanded=False):
+            st.markdown("""
 **对话**（自动分配男女声）：
 ```
 Number 1.
@@ -265,72 +340,217 @@ Number 3. Scientists have found that...
 **中文角色名也支持**：`[男]: ...` `[女]: ...`
 
 **题号格式均可识别**：`Number 1.` / `Q1.` / `(Q1)` — 会自动语音播报
-        """)
+            """)
 
-    selected = st.selectbox("快速加载示例", list(EXAMPLES.keys()))
-    script_text = st.text_area(
-        "脚本输入区",
-        value=EXAMPLES[selected],
-        height=340,
-        placeholder="在这里粘贴听力原文…\n\nNumber 1.\n[Man]: Good morning!\n[Woman]: Hello there.",
-        label_visibility="collapsed",
-    )
+        selected = st.selectbox("快速加载示例", list(EXAMPLES.keys()))
+        script_text = st.text_area(
+            "脚本输入区",
+            value=EXAMPLES[selected],
+            height=340,
+            placeholder="在这里粘贴听力原文…\n\nNumber 1.\n[Man]: Good morning!\n[Woman]: Hello there.",
+            label_visibility="collapsed",
+        )
 
-with col_right:
-    st.markdown('<div class="sec-header">🔍 脚本预览</div>', unsafe_allow_html=True)
+    with col_right:
+        st.markdown('<div class="sec-header">🔍 脚本预览</div>', unsafe_allow_html=True)
 
-    if script_text.strip():
-        from parser.script_parser import parse_script
-        parsed = parse_script(script_text)
+        if script_text.strip():
+            from parser.script_parser import parse_script
+            parsed = parse_script(script_text)
 
-        c1, c2 = st.columns(2)
-        c1.metric("识别片段数", len(parsed.segments))
-        type_map = {"dialogue": "对话", "monologue": "独白", "broadcast": "广播"}
-        c2.metric("题型", type_map.get(parsed.script_type, parsed.script_type))
+            c1, c2 = st.columns(2)
+            c1.metric("识别片段数", len(parsed.segments))
+            type_map = {"dialogue": "对话", "monologue": "独白", "broadcast": "广播"}
+            c2.metric("题型", type_map.get(parsed.script_type, parsed.script_type))
 
-        if parsed.speakers:
-            tags = " ".join(f'<span class="speaker-tag">{s}</span>' for s in parsed.speakers)
-            st.markdown("**说话人：** " + tags, unsafe_allow_html=True)
+            if parsed.speakers:
+                tags = " ".join(f'<span class="speaker-tag">{s}</span>' for s in parsed.speakers)
+                st.markdown("**说话人：** " + tags, unsafe_allow_html=True)
 
-        lines_html = []
-        for seg in parsed.segments:
-            if seg.is_question_marker:
-                lines_html.append(f'<span class="q-tag">🔔 {seg.text}</span>')
-            else:
-                spk = f"<b>[{seg.speaker}]</b>" if seg.speaker else "<i>[旁白]</i>"
-                txt = (seg.text[:58] + "…") if len(seg.text) > 58 else seg.text
-                lines_html.append(f"{spk}&nbsp;&nbsp;{txt}")
-        st.markdown("<br>".join(lines_html), unsafe_allow_html=True)
-    else:
-        st.info("在左侧输入脚本后，这里会显示解析预览。")
+            lines_html = []
+            for seg in parsed.segments:
+                if seg.is_question_marker:
+                    lines_html.append(f'<span class="q-tag">🔔 {seg.text}</span>')
+                else:
+                    spk = f"<b>[{seg.speaker}]</b>" if seg.speaker else "<i>[旁白]</i>"
+                    txt = (seg.text[:58] + "…") if len(seg.text) > 58 else seg.text
+                    lines_html.append(f"{spk}&nbsp;&nbsp;{txt}")
+            st.markdown("<br>".join(lines_html), unsafe_allow_html=True)
+        else:
+            st.info("在左侧输入脚本后，这里会显示解析预览。")
+
+        st.markdown("---")
+        st.markdown('<div class="sec-header">🎵 生成语音</div>', unsafe_allow_html=True)
+
+        if not script_text.strip():
+            st.warning("请先在左侧输入听力脚本。")
+        elif provider == "openai" and not openai_key:
+            st.error("使用 OpenAI TTS 需要在左侧填入 API Key。")
+        else:
+            if st.button("🚀 一键生成音频", type="primary", use_container_width=True, key="gen_manual"):
+                run_generate(
+                    script_text=script_text,
+                    provider=provider,
+                    voice_a=voice_a,
+                    voice_b=voice_b,
+                    openai_key=openai_key,
+                    openai_model=openai_model,
+                    openai_speed=openai_speed,
+                    pause_between=pause_between,
+                    q_pause=q_pause,
+                )
 
     st.markdown("---")
-    st.markdown('<div class="sec-header">🎵 生成语音</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="tip-box">💡 <b>新手建议</b>：先从上方「快速加载示例」选一个体验效果，'
+        '再把 AI 生成的听力原文按照 <code>[Man]: ...</code> / <code>[Woman]: ...</code> 格式粘贴进来即可。</div>',
+        unsafe_allow_html=True,
+    )
 
-    if not script_text.strip():
-        st.warning("请先在左侧输入听力脚本。")
-    elif provider == "openai" and not openai_key:
-        st.error("使用 OpenAI TTS 需要在左侧填入 API Key。")
-    else:
-        if st.button("🚀 一键生成音频", type="primary", use_container_width=True):
-            run_generate(
-                script_text=script_text,
-                provider=provider,
-                voice_a=voice_a,
-                voice_b=voice_b,
-                openai_key=openai_key,
-                openai_model=openai_model,
-                openai_speed=openai_speed,
-                pause_between=pause_between,
-                q_pause=q_pause,
-            )
 
-# ─────────────────────────────────────────────
-# Footer tip
-# ─────────────────────────────────────────────
-st.markdown("---")
-st.markdown(
-    '<div class="tip-box">💡 <b>新手建议</b>：先从上方「快速加载示例」选一个体验效果，'
-    '再把 AI 生成的听力原文按照 <code>[Man]: ...</code> / <code>[Woman]: ...</code> 格式粘贴进来即可。</div>',
-    unsafe_allow_html=True,
-)
+# ═════════════════════════════════════════════
+# Tab 2 — AI generation
+# ═════════════════════════════════════════════
+with tab2:
+    st.markdown('<div class="sec-header">🤖 AI 自动出题</div>', unsafe_allow_html=True)
+    st.markdown("输入要求，DeepSeek 将自动生成完整听力试卷（原文 + 题目 + 答案），然后一键合成音频并下载 Word 试卷。")
+
+    ai_col_left, ai_col_right = st.columns([1, 1], gap="large")
+
+    with ai_col_left:
+        st.markdown("#### 📋 描述你的出题需求")
+
+        # Example prompt selector
+        ai_selected = st.selectbox("快速加载示例提示词", list(AI_EXAMPLE_PROMPTS.keys()), key="ai_example_sel")
+        ai_prompt_default = AI_EXAMPLE_PROMPTS[ai_selected]
+
+        ai_prompt = st.text_area(
+            "提示词",
+            value=ai_prompt_default,
+            height=260,
+            placeholder=(
+                "例如：\n"
+                "请生成一套大学英语四级听力试题，共15题：\n"
+                "- Part I 短对话 8题\n"
+                "- Part II 长对话 4题\n"
+                "- Part III 独白 3题\n"
+                "话题涵盖校园生活和职场场景。"
+            ),
+            label_visibility="collapsed",
+        )
+
+        # Generate test button
+        can_generate = bool(ai_prompt.strip() and deepseek_key)
+        if not deepseek_key:
+            st.warning("请在左侧边栏填入 DeepSeek API Key。")
+
+        gen_btn = st.button(
+            "✨ AI 生成试卷",
+            type="primary",
+            use_container_width=True,
+            disabled=not can_generate,
+            key="gen_ai_test",
+        )
+
+        if gen_btn and can_generate:
+            with st.spinner("🤖 DeepSeek 正在生成听力试卷，请稍候（约 20–60 秒）…"):
+                try:
+                    from llm.deepseek import generate_listening_test
+                    ai_test = generate_listening_test(
+                        prompt=ai_prompt,
+                        api_key=deepseek_key,
+                        model=deepseek_model,
+                    )
+                    st.session_state["ai_test"] = ai_test
+                    st.success(f"✅ 生成成功！共 {sum(len(s.items) for s in ai_test.sections)} 题")
+                except Exception as e:
+                    st.error(f"生成失败：{e}")
+                    if "api_key" in str(e).lower() or "authentication" in str(e).lower():
+                        st.info("请检查 DeepSeek API Key 是否正确。")
+
+    with ai_col_right:
+        st.markdown("#### 📄 生成结果预览")
+
+        ai_test = st.session_state.get("ai_test")
+
+        if ai_test is None:
+            st.info("点击左侧「AI 生成试卷」后，题目和答案将在这里显示。")
+        else:
+            # Show test overview
+            total_q = sum(len(s.items) for s in ai_test.sections)
+            st.markdown(f"**{ai_test.title}**  ·  共 {total_q} 题，{len(ai_test.sections)} 个 Part")
+            st.markdown("---")
+
+            for sec in ai_test.sections:
+                with st.expander(f"📂 {sec.name}（{len(sec.items)} 题）", expanded=True):
+                    if sec.instructions:
+                        st.caption(sec.instructions)
+                    for item in sec.items:
+                        st.markdown(f"**{item.number}. {item.question}**")
+                        for letter in ("A", "B", "C", "D"):
+                            opt = item.options.get(letter, "")
+                            if opt:
+                                prefix = "✅" if letter == item.answer else "　"
+                                st.markdown(f"{prefix} {letter}. {opt}")
+                        if item.explanation:
+                            st.caption(f"解析：{item.explanation}")
+                        st.markdown("")
+
+    # ── Bottom action bar ──────────────────────────────────────────────
+    if st.session_state.get("ai_test"):
+        ai_test = st.session_state["ai_test"]
+        st.markdown("---")
+        st.markdown('<div class="sec-header">🎵 生成音频 & 下载试卷</div>', unsafe_allow_html=True)
+
+        action_col1, action_col2, action_col3 = st.columns([2, 1, 1], gap="medium")
+
+        with action_col1:
+            if provider == "openai" and not openai_key:
+                st.error("使用 OpenAI TTS 需要在侧边栏填入 OpenAI API Key。")
+            else:
+                if st.button("🎙️ 生成音频", type="primary", use_container_width=True, key="gen_ai_audio"):
+                    tts_script = ai_test.to_tts_script()
+                    run_generate(
+                        script_text=tts_script,
+                        provider=provider,
+                        voice_a=voice_a,
+                        voice_b=voice_b,
+                        openai_key=openai_key,
+                        openai_model=openai_model,
+                        openai_speed=openai_speed,
+                        pause_between=pause_between,
+                        q_pause=q_pause,
+                    )
+
+        with action_col2:
+            # Word download
+            try:
+                from export.docx_export import export_to_docx
+                docx_bytes = export_to_docx(ai_test)
+                safe_title = ai_test.title.replace(" ", "_").replace("/", "-")[:40]
+                st.download_button(
+                    label="📄 下载 Word 试卷",
+                    data=docx_bytes,
+                    file_name=f"{safe_title}.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    use_container_width=True,
+                )
+            except ImportError:
+                st.warning("请安装 python-docx：`pip install python-docx`")
+            except Exception as e:
+                st.error(f"Word 导出失败：{e}")
+
+        with action_col3:
+            # Show answer key
+            with st.expander("📋 查看答案表"):
+                st.markdown(
+                    f'<div class="ans-box">{ai_test.to_answer_key()}</div>',
+                    unsafe_allow_html=True,
+                )
+
+        st.markdown("---")
+        st.markdown(
+            '<div class="tip-box">💡 <b>提示</b>：点击「生成音频」后，音频播放器和 MP3 下载按钮将出现在上方。'
+            '「下载 Word 试卷」包含完整题目和答案页，可直接打印。</div>',
+            unsafe_allow_html=True,
+        )
