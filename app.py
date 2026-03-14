@@ -583,6 +583,7 @@ Number 3. Scientists have found that...
                 st.info("请检查左侧面板中的 OpenAI API Key 是否正确。")
 
         st.session_state["_generating"] = False
+        st.rerun()
 
     else:
         if st.button("🚀 一键生成音频", type="primary", use_container_width=True,
