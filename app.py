@@ -512,23 +512,17 @@ Number 3. Scientists have found that...
     # ── Example selector ──────────────────────────────────────────────
     selected = st.selectbox("快速加载示例", list(EXAMPLES.keys()))
     if selected != "（选择示例快速体验）" and st.session_state.get("_last_example") != selected:
-        st.session_state["script_val"] = EXAMPLES[selected]
+        st.session_state["script_input"] = EXAMPLES[selected]
         st.session_state["_last_example"] = selected
-
-    if "script_val" not in st.session_state:
-        st.session_state["script_val"] = ""
 
     # ── Script text area ──────────────────────────────────────────────
     script_text = st.text_area(
         "脚本输入区",
-        value=st.session_state["script_val"],
         height=340,
         placeholder="在这里粘贴听力原文…\n\nNumber 1.\n[Man]: Good morning!\n[Woman]: Hello there.",
         label_visibility="collapsed",
         key="script_input",
     )
-    # Keep session state in sync with manual edits
-    st.session_state["script_val"] = script_text
 
     # ── Generate button (loading-state pattern) ───────────────────────
     can_gen = bool(script_text.strip()) and (provider != "openai" or openai_key)
@@ -550,7 +544,7 @@ Number 3. Scientists have found that...
                 stream_ph = st.empty()
             try:
                 text_to_use = format_script_with_deepseek(script_text, deepseek_key, output_ph=stream_ph)
-                st.session_state["script_val"] = text_to_use
+                st.session_state["script_input"] = text_to_use
                 st.session_state["formatted_text"] = text_to_use
                 print(f"[DeepSeek] ===== 格式化结果 =====\n{text_to_use}\n[DeepSeek] ===== 结果结束 =====", flush=True)
             except Exception as e:
