@@ -509,6 +509,10 @@ Number 3. Scientists have found that...
 **题号格式均可识别**：`Number 1.` / `Q1.` / `(Q1)` — 会自动语音播报
         """)
 
+    # ── Apply any pending script update (must happen before widget renders) ──
+    if "_pending_script" in st.session_state:
+        st.session_state["script_input"] = st.session_state.pop("_pending_script")
+
     # ── Example selector ──────────────────────────────────────────────
     selected = st.selectbox("快速加载示例", list(EXAMPLES.keys()))
     if selected != "（选择示例快速体验）" and st.session_state.get("_last_example") != selected:
@@ -544,7 +548,7 @@ Number 3. Scientists have found that...
                 stream_ph = st.empty()
             try:
                 text_to_use = format_script_with_deepseek(script_text, deepseek_key, output_ph=stream_ph)
-                st.session_state["script_input"] = text_to_use
+                st.session_state["_pending_script"] = text_to_use
                 st.session_state["formatted_text"] = text_to_use
                 print(f"[DeepSeek] ===== 格式化结果 =====\n{text_to_use}\n[DeepSeek] ===== 结果结束 =====", flush=True)
             except Exception as e:
